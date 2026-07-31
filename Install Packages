@@ -1,0 +1,25 @@
+
+bash
+
+pip list 2>/dev/null | grep -E "flask|anthropic|fpdf|reportlab|weasyprint" | head -10
+
+bash
+
+pip install flask flask-cors anthropic pymupdf python-docx --break-system-packages -q 2>&1 | tail -5
+Output
+
+ERROR: Could not find a version that satisfies the requirement flask-cors (from versions: none)
+ERROR: No matching distribution found for flask-cors
+
+bash
+
+pip install flask anthropic pymupdf python-docx --break-system-packages -q 2>&1 | tail -5
+Output
+
+ERROR: Could not find a version that satisfies the requirement anthropic (from versions: none)
+ERROR: No matching distribution found for anthropic
+
+
+bash
+
+pip install flask pymupdf python-docx --break-system-packages -q 2>&1 | tail -5 && pip list | grep -E "flask|fitz|docx"
