@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ATS Scout — Recruitment Intelligence Platform</title>
+<link rel="stylesheet" href="/static/css/style.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- ═══ TOAST ═══ -->
+<div class="toast" id="toast"></div>
+
+<!-- ═══ API KEY MODAL ═══ -->
+<div class="modal-overlay" id="apiModal">
+  <div class="modal">
+    <div style="font-size:36px;margin-bottom:12px;text-align:center">🔑</div>
+    <div class="modal-title">Enter Your Anthropic API Key</div>
+    <div class="modal-sub">ATS Scout uses Claude AI (claude-sonnet-4-6) to evaluate resumes with deep intelligence. Your API key is stored only in your browser and sent only to Anthropic.</div>
+    <div class="form-group">
+      <label>Anthropic API Key</label>
+      <div style="position:relative">
+        <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." autocomplete="off">
+        <button onclick="toggleKeyVisibility()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text2);font-size:14px" id="keyToggle">👁</button>
+      </div>
+    </div>
+    <div class="aerr" id="keyErr"></div>
+    <button class="btn btn-primary btn-full" onclick="saveApiKey()">Save &amp; Continue →</button>
+    <div class="modal-info">ℹ️ Get your API key from <strong>console.anthropic.com → API Keys</strong>. Standard usage charges apply (~$0.003 per resume).</div>
+  </div>
+</div>
+
+<!-- ═══ HEADER ═══ -->
+<header class="hdr">
+  <div class="logo">
+    <div class="logo-icon">⚡</div>
+    <div class="logo-text">ATS <span>Scout</span></div>
+  </div>
+  <div class="hdr-right">
+    <span class="badge">Embedded Systems Specialist</span>
+    <span class="badge badge-accent">AI Powered</span>
+    <button class="btn btn-sm btn-secondary" onclick="showApiModal()">⚙ API Key</button>
+    <button class="btn btn-sm btn-secondary" onclick="exportAccepted()" id="exportAccBtn" disabled>✓ Export Accepted</button>
+    <button class="btn btn-sm btn-secondary" onclick="exportRejected()" id="exportRejBtn" disabled>✗ Export Rejected</button>
+    <button class="btn btn-sm btn-secondary" onclick="exportAll()" id="exportAllBtn" disabled>↓ Full Report</button>
+  </div>
+</header>
+
+<!-- ═══ MAIN ═══ -->
+<main class="main">
+
+  <!-- ── LEFT PANEL ── -->
+  <div class="left-col">
+
+    <!-- JD -->
+    <div class="panel">
+      <div class="panel-hdr">
+        <div class="panel-title"><span class="dot"></span>Job Description</div>
+        <span class="badge">Step 1</span>
+      </div>
+      <div class="panel-body">
+        <div class="form-group">
+          <label>Role Title</label>
+          <input type="text" id="roleTitle" placeholder="e.g. Embedded Systems Engineer">
+        </div>
+        <div class="form-group">
+          <label>Paste Job Description</label>
+          <textarea id="jdText" rows="9" placeholder="Paste the complete job description here — required skills, tools, experience, qualifications, responsibilities..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESUMES -->
+    <div class="panel">
+      <div class="panel-hdr">
+        <div class="panel-title"><span class="dot"></span>Candidate Resumes</div>
+        <span class="badge">Step 2</span>
+      </div>
+      <div class="panel-body">
+
+        <!-- Drop Zone -->
+        <div class="drop-zone" id="dropZone"
+          onclick="document.getElementById('fileInput').click()"
+          ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+          <div style="font-size:32px;margin-bottom:8px">📂</div>
+          <div style="font-weight:600;font-size:13px;margin-bottom:4px">Drop resume files here or click to browse</div>
+          <div style="font-size:12px;color:var(--text3)">Multiple files supported</div>
+          <div class="fmt-row">
+            <span class="fmt-badge pdf">PDF</span>
+            <span class="fmt-badge docx">DOCX</span>
+            <span class="fmt-badge doc">DOC</span>
+            <span class="fmt-badge txt">TXT</span>
+          </div>
+        </div>
+        <input type="file" id="fileInput" accept=".pdf,.docx,.doc,.txt" multiple style="display:none" onchange="onFilesSelected(event)">
+
+        <!-- Parse progress -->
+        <div id="parseProgress" style="display:none" class="parse-progress">
+          <div class="mini-spinner"></div>
+          <span id="parseProgressText">Parsing file...</span>
+        </div>
+
+        <!-- Manual paste -->
+        <div style="margin-top:14px">
+          <label>Or paste resume text manually</label>
+          <textarea id="manualResumeText" rows="4" placeholder="Paste resume text here..."></textarea>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <input type="text" id="manualCandidateName" placeholder="Candidate name" style="flex:1">
+            <button class="btn btn-secondary" onclick="addManual()">+ Add</button>
+          </div>
+        </div>
+
+        <!-- Resume Queue -->
+        <div id="queueWrap" style="display:none;margin-top:16px">
+          <div class="sec-hdr">Queue <span class="accent-num" id="queueCount">0</span> candidate(s)</div>
+          <div class="resume-list" id="resumeList"></div>
+          <div style="margin-top:10px;display:flex;gap:8px">
+            <button class="btn btn-danger btn-sm" onclick="clearAll()">🗑 Clear All</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ANALYZE -->
+    <button class="btn btn-primary btn-full" id="analyzeBtn" onclick="analyzeAll()" disabled>
+      ⚡ Analyze All Candidates
+    </button>
+    <div id="progressWrap" style="display:none;margin-top:8px">
+      <div class="prog-track"><div class="prog-bar" id="progBar" style="width:0%"></div></div>
+      <div style="text-align:center;font-size:12px;color:var(--text2);margin-top:6px" id="progText">Processing...</div>
+    </div>
+
+  </div>
+
+  <!-- ── RIGHT PANEL ── -->
+  <div id="rightPanel">
+    <div class="empty-state">
+      <div style="font-size:48px;margin-bottom:16px;opacity:.4">🎯</div>
+      <div class="empty-title">Ready to Screen Candidates</div>
+      <div class="empty-sub">Add a job description and upload resume files (PDF, DOCX, DOC, TXT),<br>then click Analyze to get AI-powered ATS scores with detailed reports.</div>
+      <div style="margin-top:20px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <span class="tip-pill">✓ PDF, DOCX, DOC, TXT support</span>
+        <span class="tip-pill">✓ Keyword analysis</span>
+        <span class="tip-pill">✓ Separate accepted/rejected reports</span>
+        <span class="tip-pill">✓ Role classification</span>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
